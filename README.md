@@ -3,7 +3,7 @@ Represents a struct struct as a chez scheme fixnum, this can have performance tr
 
 ```
 (define-tiny-struct my-struct
-      u 8 my-unsigned-int ;; 8 can be any number less than the bit width
+      u 8 my-unsigned-int ;; 8 can be any number less than the bit width of a fixnum
       s 20 my-signed-int
       char c ;; 8 bit representation that gets converted for you on set/get
       bool b ;; 1 bit representation that gets converted for you on set/get
