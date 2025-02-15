@@ -7,7 +7,7 @@ Represents a struct struct as a chez scheme fixnum, this can have performance tr
       s 20 my-signed-int
       char c ;; 8 bit representation that gets converted for you on set/get
       bool b ;; 1 bit representation that gets converted for you on set/get
-      array u 4 5 my-array ;; an 'array' of 4 bit unsigned ints of length 5
+      array u 4 5 my-array ;; an 'array' of 4 bit unsigned ints of length 5. An array can contain any prior type 
       )
 ```
 
