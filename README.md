@@ -1,5 +1,5 @@
 ## Tiny Struct
-Represents a struct struct as a chez scheme fixnum, this can have performance tradeoffs when comparible to trying to do something similar with a bytevector. Tiny Structs must be fixnum bit length - 1 (Tiny Struct does not currently take advantage of the sign bit). Here are the supported types:
+Represents a struct as a chez scheme fixnum, this can have performance tradeoffs when comparing to trying to do something similar with a bytevector. Tiny Structs must be fixnum bit length - 1 (Tiny Struct does not currently take advantage of the sign bit). Here are the supported types:
 
 ```
 (define-tiny-struct my-struct
