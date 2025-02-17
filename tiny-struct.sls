@@ -282,7 +282,7 @@
                             (lambda (stx)
                               (syntax-case stx ()
                                 [(_ x)
-                                 (fx- (fxand x #,(fx1- (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))]))))
+                                 #`(fx- (fxand x #,(fx1- (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))]))))
                         ((null? (syntax->datum #'(rest ...)))
                         #`(define-syntax getter-name
                             (lambda (stx)
