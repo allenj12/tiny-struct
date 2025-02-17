@@ -23,3 +23,16 @@ Arrays have the same naming pattern but take an additional index paramter. Below
 ```
 (my-struct-my-array (my-struct-c-set (my-struct-my-array-set 0 4 15) #\A) 4)
 ```
+## Performance
+### Pros
+Tiny struct from my own testing seems to be more performant than byte arrays in the following scenarios
+
+1. When the first field in the struct is accessed primarily
+2. You want an unconventional size, like a u24 int
+3. You operate on multiple fields of the struct before mutating the fxvector
+
+### Cons
+Byte arrays from my own testing seem to be more performant than Tiny Struct when:
+
+1. You are primarily accessing the middle field of the "struct"
+2. You only are working on one field at a time.
