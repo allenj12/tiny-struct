@@ -160,17 +160,21 @@
         (with-syntax ([getter-name (datum->syntax #'k (string->symbol base))]
                       [setter-name (datum->syntax #'k (string->symbol (string-append base "-set")))])
           #`(begin
-            (define getter-name
-              (lambda (x)
-                (integer->char (fxand (fxarithmetic-shift-right x #,(syntax->datum #'total-bits)) 255))))
-            (define setter-name
-              (lambda (x new)
-                (fxlogor (fxand x 
-                            #,(fxnot (fxarithmetic-shift-left 
-                                        255
-                                        (syntax->datum #'total-bits))))
-                        (fxarithmetic-shift-left (char->integer new) total-bits))))
-            #,(ts-backend #`(k #,(fx+ 8 (syntax->datum #'total-bits)) struct-name rest ...))))))]
+              #,(if (null? (syntax->datum #'(rest ...)))
+                  #`(define getter-name
+                      (lambda (x)
+                        (integer->char (fxarithmetic-shift-right x #,(syntax->datum #'total-bits)))))
+                  #`(define getter-name
+                      (lambda (x)
+                        (integer->char (fxand (fxarithmetic-shift-right x #,(syntax->datum #'total-bits)) 255)))))
+              (define setter-name
+                (lambda (x new)
+                  (fxlogor (fxand x 
+                              #,(fxnot (fxarithmetic-shift-left 
+                                          255
+                                          (syntax->datum #'total-bits))))
+                          (fxarithmetic-shift-left (char->integer new) total-bits))))
+              #,(ts-backend #`(k #,(fx+ 8 (syntax->datum #'total-bits)) struct-name rest ...))))))]
       [(k 0 struct-name type bits field-name rest ...)
       (if (fx> (syntax->datum #'bits) 60)
         (syntax-violation 'define-tiny-struct "struct too large!" stx)
@@ -209,9 +213,7 @@
                                (fxlogbit1 #,(fx1- (syntax->datum #'bits)) (fxand new #,(fx1- (expt 2 (syntax->datum #'bits))))))
                       (fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) 
                                new))))
-              #,(ts-backend #'(k bits struct-name rest ...))))
-              
-              (else #'type)))))]
+              #,(ts-backend #'(k bits struct-name rest ...))))))))]
         [(k total-bits struct-name type bits field-name rest ...)
         (if (fx> (fx+ (syntax->datum #'bits) (syntax->datum #'total-bits)) 60)
           (syntax-violation 'define-tiny-struct "struct too large!" stx)
@@ -225,9 +227,13 @@
               ((and (number? (syntax->datum #'bits))
                     (eq? (syntax->datum #'type) 'u))
                 #`(begin
-                    (define getter-name
-                      (lambda (x)
-                        (fxand (fxarithmetic-shift-right x #,(syntax->datum #'total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits))))))
+                    #,(if (null? (syntax->datum #'(rest ...)))
+                        #`(define getter-name
+                            (lambda (x)
+                              (fxarithmetic-shift-right x #,(syntax->datum #'total-bits))))
+                        #`(define getter-name
+                            (lambda (x)
+                              (fxand (fxarithmetic-shift-right x #,(syntax->datum #'total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits)))))))
                     (define setter-name
                       (lambda (x new)
                         (fxlogor (fxand x 
@@ -241,12 +247,19 @@
                     (eq? (syntax->datum #'type) 's))
                     
                 #`(begin
-                    (define getter-name
-                      (lambda (x)
-                       (let ([pre (fxand (fxarithmetic-shift-right x #,(syntax->datum #'total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits))))])
-                        (if (fxbit-set? pre #,(fx1- (syntax->datum #'bits)))
-                          (fxlogor pre #,(fxnot (fx1- (expt 2 (syntax->datum #'bits)))))
-                          pre))))
+                    #,(if (null? (syntax->datum #'(rest ...)))
+                        #`(define getter-name
+                            (lambda (x)
+                              (let ([pre (fxarithmetic-shift-right x #,(syntax->datum #'total-bits))])
+                                (if (fxbit-set? pre #,(fx1- (syntax->datum #'bits)))
+                                  (fxlogor pre #,(fxnot (fx1- (expt 2 (syntax->datum #'bits)))))
+                                  pre))))
+                        #`(define getter-name
+                            (lambda (x)
+                              (let ([pre (fxand (fxarithmetic-shift-right x #,(syntax->datum #'total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits))))])
+                                (if (fxbit-set? pre #,(fx1- (syntax->datum #'bits)))
+                                  (fxlogor pre #,(fxnot (fx1- (expt 2 (syntax->datum #'bits)))))
+                                  pre)))))
                     (define setter-name
                       (lambda (x new)
                         (if (fxnegative? new)
