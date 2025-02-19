@@ -18,6 +18,103 @@
         (with-syntax ([getter-name (datum->syntax #'k (string->symbol base))]
                       [setter-name (datum->syntax #'k (string->symbol (string-append base "-set")))])
           (cond 
+              ((and (eq? (syntax->datum #'type) 'u)
+                    (= 0 (syntax->datum #'total-bits))
+                    (null? (syntax->datum #'(rest ...))))
+                #`(begin
+                    (define-syntax getter-name
+                      (lambda (stx)
+                        (syntax-case stx ()
+                          [(_ x 0)
+                          #`(fxand x #,(sub1 (expt 2 (syntax->datum #'bits))))]
+                          [(_ x #,(fx1- (syntax->datum #'len)))
+                          #`(fxarithmetic-shift-right x #,(fx* (syntax->datum #'bits) (fx1- (syntax->datum #'len))))]
+                          [(_ x idx)
+                           (number? (syntax->datum #'idx))
+                          #`(fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))) #,(sub1 (expt 2 (syntax->datum #'bits))))]
+                          [(_ x idx)
+                          #`(fxand (fxarithmetic-shift-right x (fx+ (fx* idx bits) total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits))))])))
+                    (define-syntax setter-name
+                      (lambda (stx)
+                        (syntax-case stx ()
+                        [(_ x 0 new)
+                         #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) new)]
+                        [(_ x idx new)
+                         (number? (syntax->datum #'idx))
+                         #`(fxlogor (fxand x 
+                                    #,(fxnot (fxarithmetic-shift-left 
+                                                (sub1 (expt 2 (syntax->datum #'bits)))
+                                                (fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits)))))
+                                  (fxarithmetic-shift-left new #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))))]
+                        [(_ x idx new)
+                         #`(fxlogor (fxand x 
+                                      (fxnot (fxarithmetic-shift-left 
+                                                  #,(sub1 (expt 2 (syntax->datum #'bits)))
+                                                  (fx+ (fx* idx bits) total-bits))))
+                                  (fxarithmetic-shift-left new (fx+ (fx* idx bits) total-bits)))])))
+                    #,(ts-backend #`(k #,(fx+ (fx* (syntax->datum #'bits) (syntax->datum #'len)) (syntax->datum #'total-bits)) struct-name rest ...))))
+              ((and (eq? (syntax->datum #'type) 'u)
+                    (= 0 (syntax->datum #'total-bits)))
+                #`(begin
+                    (define-syntax getter-name
+                      (lambda (stx)
+                        (syntax-case stx ()
+                          [(_ x 0)
+                          #`(fxand x #,(sub1 (expt 2 (syntax->datum #'bits))))]
+                          [(_ x idx)
+                           (number? (syntax->datum #'idx))
+                          #`(fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))) #,(sub1 (expt 2 (syntax->datum #'bits))))]
+                          [(_ x idx)
+                          #`(fxand (fxarithmetic-shift-right x (fx+ (fx* idx bits) total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits))))])))
+                    (define-syntax setter-name
+                      (lambda (stx)
+                        (syntax-case stx ()
+                        [(_ x 0 new)
+                         #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) new)]
+                        [(_ x idx new)
+                         (number? (syntax->datum #'idx))
+                         #`(fxlogor (fxand x 
+                                    #,(fxnot (fxarithmetic-shift-left 
+                                                (sub1 (expt 2 (syntax->datum #'bits)))
+                                                (fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits)))))
+                                  (fxarithmetic-shift-left new #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))))]
+                        [(_ x idx new)
+                         #`(fxlogor (fxand x 
+                                      (fxnot (fxarithmetic-shift-left 
+                                                  #,(sub1 (expt 2 (syntax->datum #'bits)))
+                                                  (fx+ (fx* idx bits) total-bits))))
+                                  (fxarithmetic-shift-left new (fx+ (fx* idx bits) total-bits)))])))
+                    #,(ts-backend #`(k #,(fx+ (fx* (syntax->datum #'bits) (syntax->datum #'len)) (syntax->datum #'total-bits)) struct-name rest ...))))
+              ((and (eq? (syntax->datum #'type) 'u)
+                    (null? (syntax->datum #'(rest ...))))
+                #`(begin
+                    (define-syntax getter-name
+                      (lambda (stx)
+                        (syntax-case stx ()
+                          [(_ x #,(fx1- (syntax->datum #'len)))
+                           #`(fxarithmetic-shift-right x #,(fx+ (fx* (fx1- (syntax->datum #'len)) (syntax->datum #'bits)) (syntax->datum #'total-bits)))]
+                          [(_ x idx)
+                           (number? (syntax->datum #'idx))
+                          #`(fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))) #,(sub1 (expt 2 (syntax->datum #'bits))))]
+                          [(_ x idx)
+                          #`(fxand (fxarithmetic-shift-right x (fx+ (fx* idx bits) total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits))))])))
+                    (define-syntax setter-name
+                      (lambda (stx)
+                        (syntax-case stx ()
+                        [(_ x idx new)
+                         (number? (syntax->datum #'idx))
+                         #`(fxlogor (fxand x 
+                                    #,(fxnot (fxarithmetic-shift-left 
+                                                (sub1 (expt 2 (syntax->datum #'bits)))
+                                                (fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits)))))
+                                  (fxarithmetic-shift-left new #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))))]
+                        [(_ x idx new)
+                         #`(fxlogor (fxand x 
+                                      (fxnot (fxarithmetic-shift-left 
+                                                  #,(sub1 (expt 2 (syntax->datum #'bits)))
+                                                  (fx+ (fx* idx bits) total-bits))))
+                                  (fxarithmetic-shift-left new (fx+ (fx* idx bits) total-bits)))])))
+                    #,(ts-backend #`(k #,(fx+ (fx* (syntax->datum #'bits) (syntax->datum #'len)) (syntax->datum #'total-bits)) struct-name rest ...))))
               ((eq? (syntax->datum #'type) 'u)
                 #`(begin
                     (define-syntax getter-name
@@ -34,7 +131,7 @@
                         [(_ x idx new)
                          (number? (syntax->datum #'idx))
                          #`(fxlogor (fxand x 
-                                    (fxnot #,(fxarithmetic-shift-left 
+                                    #,(fxnot (fxarithmetic-shift-left 
                                                 (sub1 (expt 2 (syntax->datum #'bits)))
                                                 (fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits)))))
                                   (fxarithmetic-shift-left new #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))))]
@@ -44,6 +141,114 @@
                                                   #,(sub1 (expt 2 (syntax->datum #'bits)))
                                                   (fx+ (fx* idx bits) total-bits))))
                                   (fxarithmetic-shift-left new (fx+ (fx* idx bits) total-bits)))])))
+                    #,(ts-backend #`(k #,(fx+ (fx* (syntax->datum #'bits) (syntax->datum #'len)) (syntax->datum #'total-bits)) struct-name rest ...))))
+
+              ((and (eq? (syntax->datum #'type) 's)
+                    (= 0 (syntax->datum #'total-bits))
+                    (null? (syntax->datum #'(rest ...))))
+                #`(begin
+                    (define-syntax getter-name
+                      (lambda (stx)
+                        (syntax-case stx ()
+                         [(_ x 0)
+                          #`(fx- (fxand x #,(sub1 (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))]
+                         [(_ x #,(fx1- (syntax->datum #'len)))
+                          #`(fx- (fxarithmetic-shift-right x #,(fx+ (fx* (fx1- (syntax->datum #'len)) (syntax->datum #'bits)) (syntax->datum #'total-bits))) #,(expt 2 (fx1- (syntax->datum #'bits))))]
+                         [(_ x idx)
+                          (number? (syntax->datum #'idx))
+                          #`(fx- (fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))) #,(sub1 (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))]
+                        [(_ x idx)
+                         #`(fx- (fxand (fxarithmetic-shift-right x (fx+ (fx* idx bits) total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))])))
+                    (define-syntax setter-name
+                      (lambda (stx) 
+                        (syntax-case stx ()
+                        [(_ x 0 new)
+                         #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) 
+                                    (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))))]
+                        [(_ x idx new)
+                         (number? (syntax->datum #'idx))
+                         #`(fxlogor (fxand x 
+                                      #,(fxnot 
+                                          (fxarithmetic-shift-left 
+                                              (sub1 (expt 2 (syntax->datum #'bits))) 
+                                              (fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits)))))
+                                      (fxarithmetic-shift-left (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))) #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))))]
+                        [(_ x idx new)
+                         #`(fxlogor (fxand x 
+                                        (fxnot 
+                                          (fxarithmetic-shift-left 
+                                            #,(sub1 (expt 2 (syntax->datum #'bits))) 
+                                           (fx+ (fx* idx #,(syntax->datum #'bits)) #,(syntax->datum #'total-bits)))))
+                                        (fxarithmetic-shift-left (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))) (fx+ (fx* idx #,(syntax->datum #'bits)) #,(syntax->datum #'total-bits))))])))
+                    #,(ts-backend #`(k #,(fx+ (fx* (syntax->datum #'bits) (syntax->datum #'len)) (syntax->datum #'total-bits)) struct-name rest ...))))
+
+              ((and (eq? (syntax->datum #'type) 's)
+                    (= 0 (syntax->datum #'total-bits)))
+
+                #`(begin
+                    (define-syntax getter-name
+                      (lambda (stx)
+                        (syntax-case stx ()
+                         [(_ x 0)
+                          #`(fx- (fxand x #,(sub1 (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))]
+                         [(_ x idx)
+                          (number? (syntax->datum #'idx))
+                          #`(fx- (fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))) #,(sub1 (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))]
+                        [(_ x idx)
+                         #`(fx- (fxand (fxarithmetic-shift-right x (fx+ (fx* idx bits) total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))])))
+                    (define-syntax setter-name
+                      (lambda (stx) 
+                        (syntax-case stx ()
+                        #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) 
+                                    (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))))
+                        [(_ x idx new)
+                         (number? (syntax->datum #'idx))
+                         #`(fxlogor (fxand x 
+                                      #,(fxnot 
+                                          (fxarithmetic-shift-left 
+                                              (sub1 (expt 2 (syntax->datum #'bits))) 
+                                              (fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits)))))
+                                      (fxarithmetic-shift-left (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))) #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))))]
+                        [(_ x idx new)
+                         #`(fxlogor (fxand x 
+                                        (fxnot 
+                                          (fxarithmetic-shift-left 
+                                            #,(sub1 (expt 2 (syntax->datum #'bits))) 
+                                           (fx+ (fx* idx #,(syntax->datum #'bits)) #,(syntax->datum #'total-bits)))))
+                                        (fxarithmetic-shift-left (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))) (fx+ (fx* idx #,(syntax->datum #'bits)) #,(syntax->datum #'total-bits))))])))
+                    #,(ts-backend #`(k #,(fx+ (fx* (syntax->datum #'bits) (syntax->datum #'len)) (syntax->datum #'total-bits)) struct-name rest ...))))
+              
+              ((and (eq? (syntax->datum #'type) 's)
+                    (null? (syntax->datum #'(rest ...))))
+                #`(begin
+                    (define-syntax getter-name
+                      (lambda (stx)
+                        (syntax-case stx ()
+                         [(_ x #,(fx1- (syntax->datum #'len)))
+                          #`(fx- (fxarithmetic-shift-right x #,(fx+ (fx* (fx1- (syntax->datum #'len)) (syntax->datum #'bits)) (syntax->datum #'total-bits))) #,(expt 2 (fx1- (syntax->datum #'bits))))]
+                         [(_ x idx)
+                          (number? (syntax->datum #'idx))
+                          #`(fx- (fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))) #,(sub1 (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))]
+                        [(_ x idx)
+                         #`(fx- (fxand (fxarithmetic-shift-right x (fx+ (fx* idx bits) total-bits)) #,(sub1 (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))])))
+                    (define-syntax setter-name
+                      (lambda (stx) 
+                        (syntax-case stx ()
+                        [(_ x idx new)
+                         (number? (syntax->datum #'idx))
+                         #`(fxlogor (fxand x 
+                                      #,(fxnot 
+                                          (fxarithmetic-shift-left 
+                                              (sub1 (expt 2 (syntax->datum #'bits))) 
+                                              (fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits)))))
+                                      (fxarithmetic-shift-left (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))) #,(fx+ (fx* (syntax->datum #'idx) (syntax->datum #'bits)) (syntax->datum #'total-bits))))]
+                        [(_ x idx new)
+                         #`(fxlogor (fxand x 
+                                        (fxnot 
+                                          (fxarithmetic-shift-left 
+                                            #,(sub1 (expt 2 (syntax->datum #'bits))) 
+                                           (fx+ (fx* idx #,(syntax->datum #'bits)) #,(syntax->datum #'total-bits)))))
+                                        (fxarithmetic-shift-left (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))) (fx+ (fx* idx #,(syntax->datum #'bits)) #,(syntax->datum #'total-bits))))])))
                     #,(ts-backend #`(k #,(fx+ (fx* (syntax->datum #'bits) (syntax->datum #'len)) (syntax->datum #'total-bits)) struct-name rest ...))))
 
               ((eq? (syntax->datum #'type) 's)
@@ -123,31 +328,95 @@
         (with-syntax ([getter-name (datum->syntax #'k (string->symbol base))]
                       [setter-name (datum->syntax #'k (string->symbol (string-append base "-set")))])
           #`(begin
-              (define-syntax getter-name
-                (lambda (stx)
-                  (syntax-case stx ()
-                  [(_ x idx)
-                   (number? (syntax->datum #'idx))
-                   #`(integer->char (fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits))) 255))]
-                  [(_ x idx)
-                   #`(integer->char (fxand (fxarithmetic-shift-right x (fx+ (fx* idx 8) #,(syntax->datum #'total-bits))) 255))])))
-              (define-syntax setter-name
-                (lambda (stx)
-                  (syntax-case stx ()
-                   [(_ x idx new)
-                    (number? (syntax->datum #'idx))
-                    #`(fxlogor (fxand x 
-                                  #,(fxnot (fxarithmetic-shift-left 
-                                            255
-                                            (fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits)))))
-                            (fxarithmetic-shift-left (char->integer new) #,(fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits))))]
-                   [(_ x idx new)
-                    #`(let ([calc-total-bits (fx+ (fx* idx 8) #,(syntax->datum #'total-bits))])
-                        (fxlogor (fxand x 
-                                      (fxnot (fxarithmetic-shift-left 
+            #,(cond
+                ((and (= 0 (syntax->datum #'total-bits))
+                      (null? (syntax->datum #'(rest ...))))
+                #`(define-syntax getter-name
+                    (lambda (stx)
+                      (syntax-case stx ()
+                        [(_ x 0)
+                        #`(integer->char (fxand x 255))]
+                        [(_ x #,(fx1- (syntax->datum #'len)))
+                        #`(integer->char (fxarithmetic-shift-right x #,(fx+ (fx* (fx1- (syntax->datum #'len)) 8) (syntax->datum #'total-bits))))]
+                        [(_ x idx)
+                        (number? (syntax->datum #'idx))
+                        #`(integer->char (fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits))) 255))]
+                        [(_ x idx)
+                        #`(integer->char (fxand (fxarithmetic-shift-right x (fx+ (fx* idx 8) #,(syntax->datum #'total-bits))) 255))]))))
+                ((= 0 (syntax->datum #'total-bits))
+                 #`(define-syntax getter-name
+                    (lambda (stx)
+                      (syntax-case stx ()
+                        [(_ x 0)
+                        #`(integer->char (fxand x 255))]
+                        [(_ x idx)
+                        (number? (syntax->datum #'idx))
+                        #`(integer->char (fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits))) 255))]
+                        [(_ x idx)
+                        #`(integer->char (fxand (fxarithmetic-shift-right x (fx+ (fx* idx 8) #,(syntax->datum #'total-bits))) 255))]))))
+                ((null? (syntax->datum #'(rest ...)))
+                 #`(define-syntax getter-name
+                    (lambda (stx)
+                      (syntax-case stx ()
+                        [(_ x #,(fx1- (syntax->datum #'len)))
+                        #`(integer->char (fxarithmetic-shift-right x #,(fx+ (fx* (fx1- (syntax->datum #'len)) 8) (syntax->datum #'total-bits))))]
+                        [(_ x idx)
+                        (number? (syntax->datum #'idx))
+                        #`(integer->char (fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits))) 255))]
+                        [(_ x idx)
+                        #`(integer->char (fxand (fxarithmetic-shift-right x (fx+ (fx* idx 8) #,(syntax->datum #'total-bits))) 255))]))))
+                (else
+                 #`(define-syntax getter-name
+                    (lambda (stx)
+                      (syntax-case stx ()
+                        [(_ x idx)
+                        (number? (syntax->datum #'idx))
+                        #`(integer->char (fxand (fxarithmetic-shift-right x #,(fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits))) 255))]
+                        [(_ x idx)
+                        #`(integer->char (fxand (fxarithmetic-shift-right x (fx+ (fx* idx 8) #,(syntax->datum #'total-bits))) 255))])))))
+            #,(cond
+                ((= 0 (syntax->datum #'total-bits))
+                #`(define-syntax setter-name
+                    (lambda (stx)
+                      (syntax-case stx ()
+                      [(_ x 0 new)
+                       #`(fxlogor (fxand x 
+                                      #,(fxnot (fxarithmetic-shift-left 
                                                 255
-                                                calc-total-bits)))
-                                (fxarithmetic-shift-left (char->integer new) calc-total-bits)))])))
+                                                (syntax->datum #'total-bits))))
+                                 (char->integer new))]
+                      [(_ x idx new)
+                        (number? (syntax->datum #'idx))
+                        #`(fxlogor (fxand x 
+                                      #,(fxnot (fxarithmetic-shift-left 
+                                                255
+                                                (fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits)))))
+                                (fxarithmetic-shift-left (char->integer new) #,(fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits))))]
+                      [(_ x idx new)
+                        #`(let ([calc-total-bits (fx+ (fx* idx 8) #,(syntax->datum #'total-bits))])
+                            (fxlogor (fxand x 
+                                          (fxnot (fxarithmetic-shift-left 
+                                                    255
+                                                    calc-total-bits)))
+                                    (fxarithmetic-shift-left (char->integer new) calc-total-bits)))]))))
+                  (else
+                   #`(define-syntax setter-name
+                    (lambda (stx)
+                      (syntax-case stx ()
+                      [(_ x idx new)
+                        (number? (syntax->datum #'idx))
+                        #`(fxlogor (fxand x 
+                                      #,(fxnot (fxarithmetic-shift-left 
+                                                255
+                                                (fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits)))))
+                                (fxarithmetic-shift-left (char->integer new) #,(fx+ (fx* (syntax->datum #'idx) 8) (syntax->datum #'total-bits))))]
+                      [(_ x idx new)
+                        #`(let ([calc-total-bits (fx+ (fx* idx 8) #,(syntax->datum #'total-bits))])
+                            (fxlogor (fxand x 
+                                          (fxnot (fxarithmetic-shift-left 
+                                                    255
+                                                    calc-total-bits)))
+                                    (fxarithmetic-shift-left (char->integer new) calc-total-bits)))])))))
             #,(ts-backend #`(k #,(fx+ (fx* 8 (syntax->datum #'len)) (syntax->datum #'total-bits)) struct-name rest ...))))))]
       [(k total-bits struct-name type field-name rest ...)
        (eq? (syntax->datum #'type) 'bool)
@@ -301,7 +570,7 @@
                           (lambda (stx)
                             (syntax-case stx ()
                               [(_ x new)
-                               #'(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) 
+                               #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) 
                                         (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))))]))))
                       (else
                       #`(define-syntax setter-name
