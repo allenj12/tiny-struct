@@ -38,7 +38,7 @@
                       (lambda (stx)
                         (syntax-case stx ()
                         [(_ x 0 new)
-                         #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) new)]
+                         #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (sub1 (expt 2 (syntax->datum #'bits))))) new)]
                         [(_ x idx new)
                          (number? (syntax->datum #'idx))
                          #`(fxlogor (fxand x 
@@ -70,7 +70,7 @@
                       (lambda (stx)
                         (syntax-case stx ()
                         [(_ x 0 new)
-                         #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) new)]
+                         #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (sub1 (expt 2 (syntax->datum #'bits))))) new)]
                         [(_ x idx new)
                          (number? (syntax->datum #'idx))
                          #`(fxlogor (fxand x 
@@ -163,7 +163,7 @@
                       (lambda (stx) 
                         (syntax-case stx ()
                         [(_ x 0 new)
-                         #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) 
+                         #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (sub1 (expt 2 (syntax->datum #'bits))))) 
                                     (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))))]
                         [(_ x idx new)
                          (number? (syntax->datum #'idx))
@@ -199,7 +199,7 @@
                     (define-syntax setter-name
                       (lambda (stx) 
                         (syntax-case stx ()
-                        #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) 
+                        #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (sub1 (expt 2 (syntax->datum #'bits))))) 
                                     (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))))
                         [(_ x idx new)
                          (number? (syntax->datum #'idx))
@@ -509,7 +509,7 @@
                             (lambda (stx)
                               (syntax-case stx ()
                               [(_ x)
-                               #`(fxand x #,(fx1- (expt 2 (syntax->datum #'bits))))]))))
+                               #`(fxand x #,(sub1 (expt 2 (syntax->datum #'bits))))]))))
                         ((null? (syntax->datum #'(rest ...)))
                         #`(define-syntax getter-name
                             (lambda (stx)
@@ -528,7 +528,7 @@
                             (lambda (stx)
                               (syntax-case stx ()
                               [(_ x new)
-                               #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) new)]))))
+                               #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (sub1 (expt 2 (syntax->datum #'bits))))) new)]))))
                         (else
                           #`(define-syntax setter-name
                             (lambda (stx)
@@ -551,7 +551,7 @@
                             (lambda (stx)
                               (syntax-case stx ()
                                 [(_ x)
-                                 #`(fx- (fxand x #,(fx1- (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))]))))
+                                 #`(fx- (fxand x #,(sub1 (expt 2 (syntax->datum #'bits)))) #,(expt 2 (fx1- (syntax->datum #'bits))))]))))
                         ((null? (syntax->datum #'(rest ...)))
                         #`(define-syntax getter-name
                             (lambda (stx)
@@ -570,7 +570,7 @@
                           (lambda (stx)
                             (syntax-case stx ()
                               [(_ x new)
-                               #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (fx1- (expt 2 (syntax->datum #'bits))))) 
+                               #`(fxlogor (fxand x #,(fx- (most-positive-fixnum) (sub1 (expt 2 (syntax->datum #'bits))))) 
                                         (fx+ new #,(expt 2 (fx1- (syntax->datum #'bits)))))]))))
                       (else
                       #`(define-syntax setter-name
